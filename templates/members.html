@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block title %}会员管理 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}会员管理{% endblock %}
+
+{% block content %}
+
+<div class="search-bar">
+    <form method="GET" class="search-form">
+        <div class="search-input-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" name="keyword" value="{{ keyword }}" placeholder="搜索姓名 / 手机号 / 身份证号..." class="search-input">
+        </div>
+        <select name="status" class="filter-select">
+            <option value="" {% if not status_filter %}selected{% endif %}>全部状态</option>
+            <option value="正常" {% if status_filter == '正常' %}selected{% endif %}>正常</option>
+            <option value="挂失" {% if status_filter == '挂失' %}selected{% endif %}>挂失</option>
+            <option value="注销" {% if status_filter == '注销' %}selected{% endif %}>注销</option>
+        </select>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> 搜索</button>
+        <a href="{{ url_for('members') }}" class="btn btn-secondary"><i class="fas fa-redo"></i> 重置</a>
+    </form>
+    <a href="#" class="btn btn-success" onclick="openAddModal(); return false;"><i class="fas fa-plus"></i> 新增会员</a>
+</div>
+
+<div class="summary-cards">
+    <div class="summary-card">
+        <span class="summary-label">总会员</span>
+        <span class="summary-value">{{ members|length }}</span>
+    </div>
+    <div class="summary-card summary-green">
+        <span class="summary-label">正常</span>
+        <span class="summary-value">{{ members|selectattr('status', 'equalto', '正常')|list|length }}</span>
+    </div>
+    <div class="summary-card summary-orange">
+        <span class="summary-label">挂失</span>
+        <span class="summary-value">{{ members|selectattr('status', 'equalto', '挂失')|list|length }}</span>
+    </div>
+    <div class="summary-card summary-gray">
+        <span class="summary-label">注销</span>
+        <span class="summary-value">{{ members|selectattr('status', 'equalto', '注销')|list|length }}</span>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>卡号</th>
+                <th>姓名</th>
+                <th>手机号</th>
+                <th>性别</th>
+                <th>会员等级</th>
+                <th>余额</th>
+                <th>累计充值</th>
+                <th>累计消费</th>
+                <th>加入日期</th>
+                <th>状态</th>
+                <th>备注</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in members %}
+            <tr>
+                <td><span class="id-badge">#{{ m.id }}</span></td>
+                <td><strong>{{ m.name }}</strong></td>
+                <td>{{ m.phone }}</td>
+                <td>{{ m.gender }}</td>
+                <td><span class="badge badge-{{ m.membership_type }}">{{ m.membership_type }}</span></td>
+                <td class="balance">{{ "%.2f"|format(m.balance + m.bonus_balance) }}{% if m.bonus_balance %} <span class="text-muted">(赠{{ "%.2f"|format(m.bonus_balance) }})</span>{% endif %}</td>
+                <td>{{ "%.2f"|format(m.total_recharge) }}</td>
+                <td>{{ "%.2f"|format(m.total_consumed) }}</td>
+                <td class="text-muted">{{ m.join_date[:10] }}</td>
+                <td><span class="status status-{{ m.status }}">{{ m.status }}</span></td>
+                <td class="text-muted text-truncate">{{ m.remark or '-' }}</td>
+                <td class="action-cell">
+                    <a href="#" class="btn-icon btn-edit" title="编辑" onclick="openEditModal({{ m.id }}, '{{ m.name|replace("'", "\\'") }}', '{{ m.phone }}', '{{ m.gender }}', '{{ m.id_card }}', '{{ m.membership_type }}', '{{ m.remark|replace("'", "\\'") }}'); return false;"><i class="fas fa-pen"></i></a>
+                    <a href="{{ url_for('recharge') }}?member_id={{ m.id }}" class="btn-icon btn-recharge" title="充值"><i class="fas fa-plus-circle"></i></a>
+                    <a href="{{ url_for('consume') }}?member_id={{ m.id }}" class="btn-icon btn-consume" title="消费"><i class="fas fa-shopping-cart"></i></a>
+                    <a href="{{ url_for('package_manage', mid=m.id) }}" class="btn-icon btn-package" title="套餐"><i class="fas fa-box"></i></a>
+                    <a href="{{ url_for('records') }}?member_id={{ m.id }}" class="btn-icon btn-records" title="记录"><i class="fas fa-history"></i></a>
+                    {% if m.status == '正常' %}
+                    <a href="#" class="btn-icon btn-lost" title="挂失" onclick="changeStatus({{ m.id }}, '挂失', '{{ m.name }}'); return false;"><i class="fas fa-ban"></i></a>
+                    <a href="#" class="btn-icon btn-delete" title="注销" onclick="openDeleteModal({{ m.id }}, '{{ m.name }}', {{ m.balance }}, {{ m.bonus_balance }}); return false;"><i class="fas fa-trash"></i></a>
+                    {% elif m.status == '挂失' %}
+                    <a href="#" class="btn-icon btn-restore" title="恢复" onclick="changeStatus({{ m.id }}, '正常', '{{ m.name }}'); return false;"><i class="fas fa-check"></i></a>
+                    {% elif m.status == '注销' %}
+                    <span class="text-muted">已注销</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="12" class="empty-row">
+                    <i class="fas fa-inbox"></i> 暂无会员数据
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="modal-overlay" id="memberModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modalTitle">新增会员</h3>
+            <button class="modal-close" onclick="closeModal('memberModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="memberForm" method="POST" action="{{ url_for('member_add') }}">
+                <input type="hidden" name="edit_id" id="editId" value="">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>姓名 <span class="required">*</span></label>
+                        <input type="text" name="name" id="fName" required placeholder="请输入姓名">
+                    </div>
+                    <div class="form-group">
+                        <label>手机号 <span class="required">*</span></label>
+                        <input type="text" name="phone" id="fPhone" required placeholder="请输入手机号" pattern="1[3-9]\d{9}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>性别</label>
+                        <select name="gender" id="fGender">
+                            <option value="男">男</option>
+                            <option value="女">女</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>会员等级</label>
+                        <select name="membership_type" id="fType">
+                            {% for t in ['普通会员','金卡会员','白金会员','钻石会员'] %}
+                            <option value="{{ t }}">{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>身份证号</label>
+                        <input type="text" name="id_card" id="fIdCard" placeholder="可选">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <input type="text" name="remark" id="fRemark" placeholder="可选">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('memberModal')">取消</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3><i class="fas fa-exclamation-triangle" style="color:#e94560"></i> 确认注销</h3>
+            <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="deleteMsg"></p>
+            <div class="form-group">
+                <label>退还本金（元）</label>
+                <input type="number" id="refundAmount" step="0.01" min="0" readonly>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('deleteModal')">取消</button>
+            <form method="POST" id="deleteForm" style="display:inline">
+                <input type="hidden" name="refund" id="refundInput">
+                <button type="submit" class="btn btn-danger"><i class="fas fa-trash"></i> 确认注销</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="statusModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3 id="statusModalTitle">确认操作</h3>
+            <button class="modal-close" onclick="closeModal('statusModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p id="statusModalMsg"></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('statusModal')">取消</button>
+            <form method="POST" id="statusForm" style="display:inline">
+                <input type="hidden" name="status" id="statusInput">
+                <button type="submit" class="btn btn-primary" id="statusConfirmBtn">确认</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openAddModal() {
+    document.getElementById('modalTitle').textContent = '新增会员';
+    document.getElementById('memberForm').action = '{{ url_for("member_add") }}';
+    document.getElementById('editId').value = '';
+    document.getElementById('fName').value = '';
+    document.getElementById('fPhone').value = '';
+    document.getElementById('fGender').value = '男';
+    document.getElementById('fType').value = '普通会员';
+    document.getElementById('fIdCard').value = '';
+    document.getElementById('fRemark').value = '';
+    openModal('memberModal');
+}
+function openEditModal(id, name, phone, gender, idCard, type, remark) {
+    document.getElementById('modalTitle').textContent = '编辑会员';
+    document.getElementById('memberForm').action = '{{ url_for("member_add") }}';
+    document.getElementById('editId').value = id;
+    document.getElementById('fName').value = name;
+    document.getElementById('fPhone').value = phone;
+    document.getElementById('fGender').value = gender;
+    document.getElementById('fType').value = type;
+    document.getElementById('fIdCard').value = idCard;
+    document.getElementById('fRemark').value = remark;
+    openModal('memberModal');
+}
+function openDeleteModal(id, name, balance, bonus) {
+    document.getElementById('deleteMsg').innerHTML = `确认注销会员<b>${name}</b>？<br>充值本金 <b>${parseFloat(balance).toFixed(2)}</b> 元将退还，赠送金 <b>${parseFloat(bonus).toFixed(2)}</b> 元作废。`;
+    document.getElementById('refundAmount').value = balance;
+    document.getElementById('refundInput').value = balance;
+    document.getElementById('deleteForm').action = `/members/${id}/delete`;
+    openModal('deleteModal');
+}
+function changeStatus(id, status, name) {
+    const titles = { '正常': '恢复为正常', '挂失': '标记为挂失' };
+    document.getElementById('statusModalTitle').textContent = `确认${titles[status]}`;
+    document.getElementById('statusModalMsg').textContent = `确认将会员【${name}】${titles[status]}？`;
+    document.getElementById('statusInput').value = status;
+    document.getElementById('statusForm').action = `/members/${id}/status`;
+    const btn = document.getElementById('statusConfirmBtn');
+    btn.className = status === '正常' ? 'btn btn-success' : 'btn btn-warning';
+    btn.textContent = '确认';
+    openModal('statusModal');
+}
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
+});
+</script>
+{% endblock %}

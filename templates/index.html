@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}数据概览 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}数据概览{% endblock %}
+
+{% block content %}
+
+<div class="kpi-grid">
+    <div class="kpi-card kpi-blue">
+        <div class="kpi-icon"><i class="fas fa-users"></i></div>
+        <div class="kpi-info">
+            <span class="kpi-label">总会员数</span>
+            <span class="kpi-value">{{ stats.total_members }}</span>
+            <span class="kpi-trend up"><i class="fas fa-arrow-up"></i> 正常会员</span>
+        </div>
+    </div>
+    <div class="kpi-card kpi-green">
+        <div class="kpi-icon"><i class="fas fa-coins"></i></div>
+        <div class="kpi-info">
+            <span class="kpi-label">今日营收</span>
+            <span class="kpi-value">{{ "%.2f"|format(stats.today_revenue) }}</span>
+            <span class="kpi-unit">元</span>
+        </div>
+    </div>
+    <div class="kpi-card kpi-purple">
+        <div class="kpi-icon"><i class="fas fa-chart-line"></i></div>
+        <div class="kpi-info">
+            <span class="kpi-label">本月营收</span>
+            <span class="kpi-value">{{ "%.2f"|format(stats.month_revenue) }}</span>
+            <span class="kpi-unit">元</span>
+        </div>
+    </div>
+    <div class="kpi-card kpi-orange">
+        <div class="kpi-icon"><i class="fas fa-credit-card"></i></div>
+        <div class="kpi-info">
+            <span class="kpi-label">本月充值</span>
+            <span class="kpi-value">{{ "%.2f"|format(stats.month_recharge) }}</span>
+            <span class="kpi-unit">元</span>
+        </div>
+    </div>
+    <div class="kpi-card kpi-teal">
+        <div class="kpi-icon"><i class="fas fa-wallet"></i></div>
+        <div class="kpi-info">
+            <span class="kpi-label">会员总余额</span>
+            <span class="kpi-value">{{ "%.2f"|format(stats.total_balance) }}</span>
+            <span class="kpi-unit">元</span>
+        </div>
+    </div>
+    <div class="kpi-card kpi-red">
+        <div class="kpi-icon"><i class="fas fa-user-plus"></i></div>
+        <div class="kpi-info">
+            <span class="kpi-label">本月新增</span>
+            <span class="kpi-value">{{ stats.month_new }}</span>
+            <span class="kpi-trend up"><i class="fas fa-arrow-up"></i> 新会员</span>
+        </div>
+    </div>
+</div>
+
+<div class="charts-row">
+    
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-tags"></i> 会员等级分布</h3>
+        </div>
+        <div class="chart-body">
+            {% if dist %}
+            <div class="dist-bars">
+                {% for d in dist %}
+                <div class="dist-row">
+                    <span class="dist-name">{{ d.membership_type }}</span>
+                    <div class="dist-bar-wrap">
+                        {% set max_c = dist|map(attribute='c')|max %}
+                        {% set pct = (d.c / max_c * 100)|int if max_c > 0 else 0 %}
+                        <div class="dist-bar" style="width: {{ pct }}%"></div>
+                    </div>
+                    <span class="dist-count">{{ d.c }} 人</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state"><i class="fas fa-inbox"></i> 暂无会员数据</p>
+            {% endif %}
+        </div>
+    </div>
+
+    
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-crown"></i> 高价值会员 TOP 5</h3>
+        </div>
+        <div class="chart-body">
+            {% if top %}
+            <div class="top-list">
+                {% for t in top %}
+                <div class="top-item">
+                    <div class="top-rank {% if loop.index <= 3 %}top-rank-medal{% endif %}">
+                        {% if loop.index == 1 %}<i class="fas fa-trophy"></i>
+                        {% elif loop.index == 2 %}<i class="fas fa-medal"></i>
+                        {% elif loop.index == 3 %}<i class="fas fa-award"></i>
+                        {% else %}{{ loop.index }}{% endif %}
+                    </div>
+                    <div class="top-info">
+                        <span class="top-name">{{ t.name }}</span>
+                        <span class="top-type">{{ t.membership_type }}</span>
+                    </div>
+                    <div class="top-amount">{{ "%.2f"|format(t.total_consumed) }} 元</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty-state"><i class="fas fa-inbox"></i> 暂无数据</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="recent-row">
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-arrow-down" style="color:#27ae60"></i> 最近充值</h3>
+            <a href="{{ url_for('records', type='recharge') }}" class="chart-more">查看全部 <i class="fas fa-angle-right"></i></a>
+        </div>
+        <div class="chart-body">
+            {% if recent_recharge %}
+            <table class="data-table">
+                <tbody>
+                    {% for r in recent_recharge %}
+                    <tr>
+                        <td>{{ r.name }}({{ r.phone[-4:] }})</td>
+                        <td class="text-center">{{ r.payment_method }}</td>
+                        <td class="text-right amount-positive">+{{ "%.2f"|format(r.amount) }}</td>
+                        <td class="text-muted">{{ r.created_at[:16] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state"><i class="fas fa-inbox"></i> 暂无充值记录</p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="chart-card">
+        <div class="chart-header">
+            <h3><i class="fas fa-arrow-up" style="color:#e94560"></i> 最近消费</h3>
+            <a href="{{ url_for('records', type='consume') }}" class="chart-more">查看全部 <i class="fas fa-angle-right"></i></a>
+        </div>
+        <div class="chart-body">
+            {% if recent_consume %}
+            <table class="data-table">
+                <tbody>
+                    {% for r in recent_consume %}
+                    <tr>
+                        <td>{{ r.service_name }}</td>
+                        <td>{{ r.name }}({{ r.phone[-4:] }})</td>
+                        <td class="text-right amount-negative">-{{ "%.2f"|format(r.actual_price) }}</td>
+                        <td class="text-muted">{{ r.created_at[:16] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="empty-state"><i class="fas fa-inbox"></i> 暂无消费记录</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}系统设置 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}系统设置{% endblock %}
+
+{% block content %}
+
+<div class="settings-card settings-card-full">
+    <div class="settings-card-header">
+        <i class="fas fa-toolbox"></i> 功能菜单
+    </div>
+    <div class="settings-body">
+        <div class="func-menu">
+            <a class="func-menu-item" href="{{ url_for('records') }}"><i class="fas fa-receipt"></i><span>交易记录</span></a>
+            <a class="func-menu-item" href="{{ url_for('barbers') }}"><i class="fas fa-cut"></i><span>理发师管理</span></a>
+            <a class="func-menu-item" href="{{ url_for('performance') }}"><i class="fas fa-trophy"></i><span>业绩报表</span></a>
+            <a class="func-menu-item" href="{{ url_for('cash_sheets') }}"><i class="fas fa-cash-register"></i><span>收费交款</span></a>
+            <a class="func-menu-item" href="{{ url_for('logs') }}"><i class="fas fa-clipboard-list"></i><span>操作日志</span></a>
+            {% if session.get('role') == 'admin' %}
+            <a class="func-menu-item" href="{{ url_for('operators') }}"><i class="fas fa-user-shield"></i><span>操作员管理</span></a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="settings-grid">
+    
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <i class="fas fa-store"></i> 店铺信息
+        </div>
+        <form method="POST" class="settings-body">
+            <input type="hidden" name="action" value="shop_name">
+            <div class="form-group">
+                <label>店铺名称</label>
+                <input type="text" name="shop_name" value="{{ shop_name }}" class="form-input" placeholder="请输入店铺名称">
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存</button>
+        </form>
+    </div>
+
+    
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <i class="fas fa-percentage"></i> 会员等级折扣
+        </div>
+        <form method="POST" class="settings-body">
+            <input type="hidden" name="action" value="discounts">
+            {% for t in member_types %}
+            <div class="discount-row">
+                <span class="discount-label">{{ t }}</span>
+                <div class="discount-input-wrap">
+                    <input type="number" name="discount_{{ t }}" step="0.05" min="0.01" max="1"
+                           value="{{ "%.2f"|format(discounts.get(t, 1.0)) }}" class="discount-input">
+                    <span class="discount-unit">折</span>
+                </div>
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存折扣</button>
+        </form>
+    </div>
+
+    
+    <div class="settings-card settings-card-full">
+        <div class="settings-card-header">
+            <i class="fas fa-list"></i> 消费服务项目
+        </div>
+        <form method="POST" class="settings-body">
+            <input type="hidden" name="action" value="services">
+            <table class="data-table svc-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th>服务名称</th>
+                        <th style="width:140px">预设价格（元）</th>
+                        <th style="width:80px">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="svcBody">
+                    {% for s in services %}
+                    <tr>
+                        <td class="svc-index">{{ loop.index }}</td>
+                        <td><input type="text" name="svc_name[]" value="{{ s.name }}" class="svc-name-input"></td>
+                        <td><input type="number" name="svc_price[]" value="{{ s.price }}" step="0.01" min="0" class="svc-price-input"></td>
+                        <td><button type="button" class="btn-icon btn-delete-svc" onclick="removeService(this)"><i class="fas fa-trash"></i></button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="button" class="btn btn-secondary" onclick="addService()" style="margin-top:12px">
+                <i class="fas fa-plus"></i> 添加服务项目
+            </button>
+            <button type="submit" class="btn btn-primary" style="margin-top:12px;margin-left:8px">
+                <i class="fas fa-save"></i> 保存服务列表
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+function addService() {
+    const tbody = document.getElementById('svcBody');
+    const idx = tbody.children.length + 1;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td class="svc-index">${idx}</td>
+        <td><input type="text" name="svc_name[]" placeholder="服务名称" class="svc-name-input"></td>
+        <td><input type="number" name="svc_price[]" value="0" step="0.01" min="0" class="svc-price-input"></td>
+        <td><button type="button" class="btn-icon btn-delete-svc" onclick="removeService(this)"><i class="fas fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+}
+function removeService(btn) {
+    const tr = btn.closest('tr');
+    tr.remove();
+    document.querySelectorAll('.svc-index').forEach((el, i) => { el.textContent = i + 1; });
+}
+</script>
+{% endblock %}

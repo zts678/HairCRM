@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}充值 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}会员充值{% endblock %}
+
+{% block content %}
+<div class="form-page">
+    <div class="form-card">
+        <div class="form-card-header">
+            <i class="fas fa-credit-card"></i> 快速充值
+        </div>
+        
+        <div class="form-section">
+            <label>选择会员</label>
+            <div class="search-member">
+                <input type="text" name="keyword" value="{{ keyword }}" placeholder="输入姓名/手机号搜索会员..." id="memberSearch" class="search-input">
+                <button type="button" onclick="searchMember()" class="btn btn-primary"><i class="fas fa-search"></i> 搜索</button>
+            </div>
+        </div>
+        <div class="member-dropdown" id="memberDropdown" style="display:none">
+            {% for m in members %}
+            <div class="member-item {% if selected and selected.id == m.id %}active{% endif %}" onclick="selectMember({{ m.id }}, '{{ m.name }}', '{{ m.phone }}', {{ m.balance }}, {{ m.bonus_balance }}, '{{ m.membership_type }}')">
+                <div class="member-item-info">
+                    <span class="member-item-name">{{ m.name }}</span>
+                    <span class="member-item-phone">{{ m.phone }}</span>
+                </div>
+                <span class="member-item-balance">{{ "%.2f"|format(m.balance) }} 元</span>
+            </div>
+            {% endfor %}
+        </div>
+        <form method="POST" action="{{ url_for('recharge') }}" id="rechargeForm">
+            
+            <div class="member-info-card" id="memberInfoCard" {% if not selected %}style="display:none"{% endif %}>
+                <div class="member-info-item">
+                    <span class="info-label">姓名</span>
+                    <span class="info-value"><strong>{{ selected.name if selected else '' }}</strong></span>
+                </div>
+                <div class="member-info-item">
+                    <span class="info-label">手机号</span>
+                    <span class="info-value">{{ selected.phone if selected else '' }}</span>
+                </div>
+                <div class="member-info-item">
+                    <span class="info-label">会员等级</span>
+                    <span class="info-value badge badge-{{ selected.membership_type if selected else 'normal' }}">{{ selected.membership_type if selected else '' }}</span>
+                </div>
+                <div class="member-info-item">
+                    <span class="info-label">充值本金</span>
+                    <span class="info-value">{{ "%.2f"|format(selected.balance) if selected else '' }} 元</span>
+                </div>
+                <div class="member-info-item">
+                    <span class="info-label">赠送金额</span>
+                    <span class="info-value">{{ "%.2f"|format(selected.bonus_balance) if selected else '' }} 元</span>
+                </div>
+                <div class="member-info-item">
+                    <span class="info-label">当前余额</span>
+                    <span class="info-value balance-highlight">{{ "%.2f"|format(selected.balance + selected.bonus_balance) if selected else '' }} 元</span>
+                </div>
+                <input type="hidden" name="member_id" id="memberId" value="{{ selected.id if selected else '' }}">
+            </div>
+
+            
+            <div id="rechargeFields" {% if not selected %}style="display:none"{% endif %}>
+                <div class="form-section">
+                    <label>充值金额</label>
+                    <div class="amount-presets">
+                        {% for amt in [50, 100, 200, 500, 1000] %}
+                        <button type="button" class="preset-btn" onclick="setAmount({{ amt }})">{{ amt }}元</button>
+                        {% endfor %}
+                    </div>
+                    <input type="number" name="amount" id="amountInput" step="0.01" min="0.01" placeholder="请输入充值金额" class="amount-input" required>
+                </div>
+
+                <div class="form-section">
+                    <label>赠送金额（可选）</label>
+                    <input type="number" name="bonus" id="bonusInput" step="0.01" min="0" placeholder="赠送金额（可选，不参与退款）" class="amount-input">
+                </div>
+
+                <div class="form-section">
+                    <label>支付方式</label>
+                    <div class="payment-options">
+                        {% for method in ['现金', '微信', '支付宝', '银行卡'] %}
+                        <label class="payment-option">
+                            <input type="radio" name="payment" value="{{ method }}" {% if method == '现金' %}checked{% endif %}>
+                            <span>{{ method }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <label>备注</label>
+                    <input type="text" name="remark" placeholder="可选备注" class="form-input">
+                </div>
+
+                <button type="submit" class="btn btn-success btn-block"><i class="fas fa-check"></i> 确认充值</button>
+            </div>
+
+            <div class="empty-state" id="emptyState" {% if selected %}style="display:none"{% endif %}>
+                <i class="fas fa-search"></i>
+                <p>请输入会员信息进行搜索</p>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function searchMember() {
+    const kw = document.getElementById('memberSearch').value.trim();
+    if (!kw) return;
+    fetch(`/api/members/search?keyword=${encodeURIComponent(kw)}`)
+        .then(r => r.json())
+        .then(data => {
+            const dd = document.getElementById('memberDropdown');
+            if (data.length === 0) {
+                dd.innerHTML = '<div class="member-item empty">未找到会员</div>';
+                dd.style.display = 'block';
+                return;
+            }
+            dd.innerHTML = data.map(m => `
+                <div class="member-item" onclick="selectMember(${m.id}, '${m.name}', '${m.phone}', ${m.balance}, ${m.bonus_balance}, '${m.membership_type}')">
+                    <div class="member-item-info">
+                        <span class="member-item-name">${m.name}</span>
+                        <span class="member-item-phone">${m.phone}</span>
+                    </div>
+                    <span class="member-item-balance">${m.balance.toFixed(2)} 元</span>
+                </div>
+            `).join('');
+            dd.style.display = 'block';
+            console.log('searchMember OK, count:', data.length);
+        });
+}
+function selectMember(id, name, phone, balance, bonus, type) {
+    document.getElementById('memberId').value = id;
+    document.getElementById('memberSearch').value = `${name} (${phone})`;
+    document.getElementById('memberDropdown').style.display = 'none';
+
+    const card = document.getElementById('memberInfoCard');
+    card.style.display = 'flex';
+    card.innerHTML = `
+        <div class="member-info-item"><span class="info-label">姓名</span><span class="info-value"><strong>${name}</strong></span></div>
+        <div class="member-info-item"><span class="info-label">手机号</span><span class="info-value">${phone}</span></div>
+        <div class="member-info-item"><span class="info-label">会员等级</span><span class="info-value badge badge-${type}">${type}</span></div>
+        <div class="member-info-item"><span class="info-label">充值本金</span><span class="info-value">${balance.toFixed(2)} 元</span></div>
+        <div class="member-info-item"><span class="info-label">赠送金额</span><span class="info-value">${bonus.toFixed(2)} 元</span></div>
+        <div class="member-info-item"><span class="info-label">当前余额</span><span class="info-value balance-highlight">${(balance + bonus).toFixed(2)} 元</span></div>
+        <input type="hidden" name="member_id" id="memberId" value="${id}">
+    `;
+
+    document.getElementById('rechargeFields').style.display = 'block';
+    document.getElementById('emptyState').style.display = 'none';
+}
+function setAmount(val) {
+    document.getElementById('amountInput').value = val;
+}
+
+document.getElementById('memberSearch').addEventListener('keypress', e => { if (e.key === 'Enter') searchMember(); });
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.search-member') && !e.target.closest('.member-dropdown')) {
+        const dd = document.getElementById('memberDropdown');
+        if (dd) dd.style.display = 'none';
+    }
+});
+document.getElementById('memberSearch').addEventListener('focus', () => {
+    const dd = document.getElementById('memberDropdown');
+    if (dd && dd.children.length > 0) dd.style.display = 'block';
+});
+</script>
+{% endblock %}

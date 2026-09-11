@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}操作员管理 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}操作员管理{% endblock %}
+
+{% block content %}
+
+<div class="table-card">
+    <div class="table-card-header">
+        <h3><i class="fas fa-user-shield"></i> 新增操作员</h3>
+    </div>
+    <div class="card-body" style="padding:16px 20px">
+        <form method="POST" action="{{ url_for('operators') }}" class="search-form" style="flex-wrap:wrap">
+            <input type="text" name="username" placeholder="登录账号" class="search-input" style="max-width:160px" required>
+            <input type="password" name="password" placeholder="初始密码" class="search-input" style="max-width:160px" required>
+            <input type="text" name="display_name" placeholder="显示姓名（可选）" class="search-input" style="max-width:160px">
+            <select name="role" class="filter-select">
+                <option value="operator">普通操作员</option>
+                <option value="admin">管理员</option>
+            </select>
+            <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> 添加</button>
+        </form>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>登录账号</th>
+                <th>显示姓名</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for op in operators %}
+            <tr>
+                <td><span class="id-badge">#{{ op.id }}</span></td>
+                <td><strong>{{ op.username }}</strong></td>
+                <td>{{ op.display_name or '-' }}</td>
+                <td>
+                    {% if op.role == 'admin' %}
+                    <span class="badge badge-danger">管理员</span>
+                    {% else %}
+                    <span class="badge">操作员</span>
+                    {% endif %}
+                </td>
+                <td><span class="status status-{{ op.status }}">{{ op.status }}</span></td>
+                <td class="text-muted">{{ op.created_at[:16] }}</td>
+                <td class="action-cell">
+                    <a href="#" class="btn-icon btn-edit" title="编辑" onclick="openEditModal({{ op.id }}, '{{ op.username }}', '{{ op.display_name or '' }}', '{{ op.role }}', '{{ op.status }}'); return false;"><i class="fas fa-pen"></i></a>
+                    <a href="#" class="btn-icon btn-recharge" title="重置密码" onclick="openResetModal({{ op.id }}, '{{ op.username }}'); return false;"><i class="fas fa-key"></i></a>
+                    {% if op.username != 'admin' %}
+                    <form method="POST" action="{{ url_for('operator_delete', opid=op.id) }}" style="display:inline" onsubmit="return confirm('确认删除操作员【{{ op.username }}】？');">
+                        <button type="submit" class="btn-icon btn-delete" title="删除"><i class="fas fa-trash"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="empty-row"><i class="fas fa-inbox"></i> 暂无操作员</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="modal-overlay" id="editModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3>编辑操作员</h3>
+            <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" id="editForm">
+                <div class="form-group">
+                    <label>显示姓名</label>
+                    <input type="text" name="display_name" id="eName" placeholder="可选">
+                </div>
+                <div class="form-group">
+                    <label>角色</label>
+                    <select name="role" id="eRole">
+                        <option value="operator">普通操作员</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select name="status" id="eStatus">
+                        <option value="正常">正常</option>
+                        <option value="停用">停用</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">取消</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="resetModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3><i class="fas fa-key"></i> 重置密码</h3>
+            <button class="modal-close" onclick="closeModal('resetModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" id="resetForm">
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" name="new_password" id="rPassword" required placeholder="请输入新密码">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('resetModal')">取消</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 重置</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openEditModal(id, username, name, role, status) {
+    document.getElementById('editForm').action = `/operators/${id}/update`;
+    document.getElementById('eName').value = name;
+    document.getElementById('eRole').value = role;
+    document.getElementById('eStatus').value = status;
+    openModal('editModal');
+}
+function openResetModal(id, username) {
+    document.getElementById('resetForm').action = `/operators/${id}/reset_password`;
+    document.getElementById('rPassword').value = '';
+    openModal('resetModal');
+}
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
+});
+</script>
+{% endblock %}

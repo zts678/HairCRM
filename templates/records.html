@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}交易记录 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}交易记录{% endblock %}
+
+{% block content %}
+
+<div class="search-bar">
+    <form method="GET" class="search-form">
+        <select name="member_id" class="filter-select" onchange="this.form.submit()">
+            <option value="">全部会员</option>
+            {% for m in members %}
+            <option value="{{ m.id }}" {% if selected_member_id == m.id %}selected{% endif %}>{{ m.name }} ({{ m.phone }})</option>
+            {% endfor %}
+        </select>
+        <select name="type" class="filter-select" onchange="this.form.submit()">
+            <option value="all" {% if rec_type == 'all' %}selected{% endif %}>全部记录</option>
+            <option value="recharge" {% if rec_type == 'recharge' %}selected{% endif %}>仅充值</option>
+            <option value="consume" {% if rec_type == 'consume' %}selected{% endif %}>仅消费</option>
+        </select>
+    </form>
+</div>
+
+{% if rec_type != 'consume' and recharge_records %}
+<div class="table-card">
+    <div class="table-card-header">
+        <h3><i class="fas fa-arrow-down" style="color:#27ae60"></i> 充值记录</h3>
+        <span class="record-count">{{ recharge_records|length }} 条</span>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>时间</th>
+                <th>会员</th>
+                <th>充值</th>
+                <th>赠送</th>
+                <th>支付方式</th>
+                <th>备注</th>
+                <th>操作员</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in recharge_records %}
+            <tr>
+                <td class="text-muted">{{ r.created_at[:16] }}</td>
+                <td>{{ r.name }} ({{ r.phone[-4:] }})</td>
+                <td class="text-right amount-positive">+{{ "%.2f"|format(r.amount) }}</td>
+                <td class="text-right">{{ "%.2f"|format(r.bonus) if r.bonus else '-' }}</td>
+                <td><span class="badge badge-payment">{{ r.payment_method }}</span></td>
+                <td class="text-muted">{{ r.remark or '-' }}</td>
+                <td class="text-muted">{{ r.operator or '-' }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('undo_recharge', rid=r.id) }}" style="display:inline" onsubmit="return confirm('确认撤销该笔充值？撤销后对应本金和赠送金将从会员余额中扣回。');">
+                        <input type="hidden" name="member_id" value="{{ selected_member_id or '' }}">
+                        <input type="hidden" name="rec_type" value="{{ rec_type }}">
+                        <button type="submit" class="btn-icon btn-delete" title="撤销"><i class="fas fa-undo"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if rec_type != 'recharge' and consume_records %}
+<div class="table-card">
+    <div class="table-card-header">
+        <h3><i class="fas fa-arrow-up" style="color:#e94560"></i> 消费记录</h3>
+        <span class="record-count">{{ consume_records|length }} 条</span>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>时间</th>
+                <th>服务项目</th>
+                <th>会员</th>
+                <th>原价</th>
+                <th>折扣</th>
+                <th>实付</th>
+                <th>备注</th>
+                <th>操作员</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in consume_records %}
+            <tr>
+                <td class="text-muted">{{ r.created_at[:16] }}</td>
+                <td><strong>{{ r.service_name }}</strong></td>
+                <td>{{ r.name }} ({{ r.phone[-4:] }})</td>
+                <td>{{ "%.2f"|format(r.price) }}</td>
+                <td>{{ "%.1f"|format(r.discount * 10) }}折</td>
+                <td class="text-right amount-negative">-{{ "%.2f"|format(r.actual_price) }}</td>
+                <td class="text-muted">{{ r.remark or '-' }}</td>
+                <td class="text-muted">{{ r.operator or '-' }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('undo_consume', rid=r.id) }}" style="display:inline" onsubmit="return confirm('确认撤销该笔消费？撤销后金额将退回会员余额。');">
+                        <input type="hidden" name="member_id" value="{{ selected_member_id or '' }}">
+                        <input type="hidden" name="rec_type" value="{{ rec_type }}">
+                        <button type="submit" class="btn-icon btn-delete" title="撤销"><i class="fas fa-undo"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% if (rec_type != 'consume' and not recharge_records) and (rec_type != 'recharge' and not consume_records) %}
+<div class="empty-state big">
+    <i class="fas fa-inbox"></i>
+    <p>暂无交易记录</p>
+</div>
+{% endif %}
+{% endblock %}

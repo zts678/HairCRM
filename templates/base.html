@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ shop_name }}会员管理系统{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="layout">
+        
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-cut"></i>
+                    <span>{{ shop_name }}</span>
+                </div>
+                <p class="subtitle">会员管理系统</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-item {% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i>
+                    <span>数据概览</span>
+                </a>
+                <a href="{{ url_for('members') }}" class="nav-item {% if request.endpoint == 'members' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    <span>会员管理</span>
+                </a>
+                <a href="{{ url_for('recharge') }}" class="nav-item {% if request.endpoint == 'recharge' %}active{% endif %}">
+                    <i class="fas fa-credit-card"></i>
+                    <span>充值</span>
+                </a>
+                <a href="{{ url_for('consume') }}" class="nav-item {% if request.endpoint == 'consume' %}active{% endif %}">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>消费</span>
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-item {% if request.endpoint in ['settings', 'records', 'barbers', 'performance', 'cash_sheets', 'logs', 'operators'] %}active{% endif %}">
+                    <i class="fas fa-cog"></i>
+                    <span>系统设置</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('backup') }}" class="btn-backup">
+                    <i class="fas fa-download"></i> 数据备份
+                </a>
+                <a href="{{ url_for('logout') }}" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> 退出登录
+                </a>
+            </div>
+        </aside>
+
+        
+        <main class="main-content">
+            
+            <header class="topbar">
+                <button class="menu-toggle" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="topbar-title">
+                    <h1>{% block page_title %}{% endblock %}</h1>
+                </div>
+                <div class="topbar-right">
+                    <a href="{{ url_for('change_password') }}" class="btn-change-pwd" title="修改密码">
+                        <i class="fas fa-key"></i>
+                    </a>
+                    <span class="current-user">
+                        <i class="fas fa-user-circle"></i>
+                        {{ session.get('display_name') or session.get('username', '管理员') }}
+                        {% if session.get('role') == 'admin' %}<em class="admin-tag">管理员</em>{% endif %}
+                    </span>
+                    <span class="current-time" id="currentTime"></span>
+                </div>
+            </header>
+
+            
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash flash-{{ category }}">
+                                <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'error' else 'info-circle' if category == 'info' else 'exclamation-circle' }}"></i>
+                                {{ message }}
+                                <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            
+            <div class="page-content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script>
+
+        function updateTime() {
+            const now = new Date();
+            const opts = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            document.getElementById('currentTime').textContent = now.toLocaleString('zh-CN', opts);
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        document.getElementById('menuToggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.querySelector('.main-content').classList.toggle('expanded');
+        });
+
+        setTimeout(() => {
+            document.querySelectorAll('.flash-messages .flash').forEach(el => {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 300);
+            });
+        }, 4000);
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

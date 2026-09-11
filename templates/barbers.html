@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}理发师管理 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}理发师管理{% endblock %}
+
+{% block content %}
+
+<div class="table-card">
+    <div class="table-card-header">
+        <h3><i class="fas fa-cut"></i> 新增理发师</h3>
+    </div>
+    <div class="card-body" style="padding:16px 20px">
+        <form method="POST" action="{{ url_for('barbers') }}" class="search-form" style="flex-wrap:wrap">
+            <input type="hidden" name="action" value="add">
+            <input type="text" name="name" placeholder="姓名" class="search-input" style="max-width:140px" required>
+            <input type="text" name="phone" placeholder="手机号（可选）" class="search-input" style="max-width:160px">
+            <input type="text" name="position" placeholder="职称（如：高级理发师）" class="search-input" style="max-width:180px">
+            <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> 添加</button>
+        </form>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>姓名</th>
+                <th>手机号</th>
+                <th>职称</th>
+                <th>状态</th>
+                <th>添加时间</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in barbers %}
+            <tr>
+                <td><span class="id-badge">#{{ b.id }}</span></td>
+                <td><strong>{{ b.name }}</strong></td>
+                <td>{{ b.phone or '-' }}</td>
+                <td>{{ b.position }}</td>
+                <td><span class="status status-{{ b.status }}">{{ b.status }}</span></td>
+                <td class="text-muted">{{ b.created_at[:16] }}</td>
+                <td class="action-cell">
+                    <a href="#" class="btn-icon btn-edit" title="编辑" onclick="openEditModal({{ b.id }}, '{{ b.name }}', '{{ b.phone or '' }}', '{{ b.position }}', '{{ b.status }}'); return false;"><i class="fas fa-pen"></i></a>
+                    <form method="POST" action="{{ url_for('barbers') }}" style="display:inline" onsubmit="return confirm('确认删除理发师【{{ b.name }}】？');">
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="barber_id" value="{{ b.id }}">
+                        <button type="submit" class="btn-icon btn-delete" title="删除"><i class="fas fa-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="empty-row"><i class="fas fa-inbox"></i> 暂无理发师，请先添加</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="modal-overlay" id="editModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3>编辑理发师</h3>
+            <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form method="POST" id="editForm">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="barber_id" id="eId">
+                <div class="form-group">
+                    <label>姓名</label>
+                    <input type="text" name="name" id="eName" required>
+                </div>
+                <div class="form-group">
+                    <label>手机号</label>
+                    <input type="text" name="phone" id="ePhone">
+                </div>
+                <div class="form-group">
+                    <label>职称</label>
+                    <input type="text" name="position" id="ePosition">
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select name="status" id="eStatus">
+                        <option value="正常">正常</option>
+                        <option value="停用">停用</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('editModal')">取消</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> 保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openEditModal(id, name, phone, position, status) {
+    document.getElementById('editForm').action = '{{ url_for("barbers") }}';
+    document.getElementById('eId').value = id;
+    document.getElementById('eName').value = name;
+    document.getElementById('ePhone').value = phone;
+    document.getElementById('ePosition').value = position;
+    document.getElementById('eStatus').value = status;
+    openModal('editModal');
+}
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('show'); });
+});
+</script>
+{% endblock %}

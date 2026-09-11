@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}收费交款 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}收费交款{% endblock %}
+
+{% block content %}
+<div class="form-page">
+    <div class="form-card">
+        <div class="form-card-header">
+            <i class="fas fa-cash-register"></i> 充值交款
+        </div>
+        <form method="GET" action="{{ url_for('cash_sheets') }}">
+            <div class="form-row">
+                <div class="form-section">
+                    <label>充值操作员</label>
+                    {% if is_admin %}
+                    <select name="operator" class="form-select" id="operatorSelect">
+                        <option value="">-- 请选择操作员 --</option>
+                        {% for op in operators %}
+                        <option value="{{ op.username }}" {% if selected_operator == op.username %}selected{% endif %}>{{ op.display_name or op.username }}{% if op.role == 'admin' %}（管理员）{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                    <input type="text" class="form-input" value="{{ selected_operator }}" readonly>
+                    {% endif %}
+                </div>
+                <div class="form-section">
+                    <label>统计日期</label>
+                    <input type="date" name="date" value="{{ selected_date }}" class="form-input" id="dateInput" onchange="this.form.submit()">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block"><i class="fas fa-search"></i> 统计充值金额</button>
+        </form>
+
+        {% if preview is not none %}
+        <div class="form-section" style="margin-top:16px">
+            <label>操作员 <strong>{{ preview_operator }}</strong> {{ preview_date }} 充值汇总</label>
+            <div class="summary-cards">
+                <div class="summary-card"><span class="summary-label">充值笔数</span><span class="summary-value">{{ preview.cnt }}</span></div>
+                <div class="summary-card summary-green"><span class="summary-label">现金</span><span class="summary-value">{{ "%.2f"|format(preview.cash) }}</span></div>
+                <div class="summary-card"><span class="summary-label">微信</span><span class="summary-value">{{ "%.2f"|format(preview.wechat) }}</span></div>
+                <div class="summary-card"><span class="summary-label">支付宝</span><span class="summary-value">{{ "%.2f"|format(preview.alipay) }}</span></div>
+                <div class="summary-card"><span class="summary-label">银行卡</span><span class="summary-value">{{ "%.2f"|format(preview.card) }}</span></div>
+                <div class="summary-card summary-orange"><span class="summary-label">合计</span><span class="summary-value">{{ "%.2f"|format(preview.amount) }}</span></div>
+            </div>
+
+            {% if preview.cnt == 0 %}
+            <p class="empty-state"><i class="fas fa-inbox"></i> 该操作员当日无充值记录</p>
+            {% elif already_paid %}
+            <div class="flash flash-error"><i class="fas fa-exclamation-circle"></i> 该操作员当日已交款，请勿重复交款</div>
+            {% else %}
+            <form method="POST" action="{{ url_for('cash_sheets') }}">
+                <input type="hidden" name="operator" value="{{ preview_operator }}">
+                <input type="hidden" name="date" value="{{ preview_date }}">
+                <div class="form-section">
+                    <label>备注</label>
+                    <input type="text" name="remark" placeholder="可选备注" class="form-input">
+                </div>
+                <button type="submit" class="btn btn-success btn-block"><i class="fas fa-check"></i> 确认交款 {{ "%.2f"|format(preview.amount) }} 元</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="table-card">
+    <div class="table-card-header">
+        <h3><i class="fas fa-receipt"></i> 交款记录</h3>
+        <span class="record-count">共 {{ sheets|length }} 条，合计 {{ "%.2f"|format(total) }} 元</span>
+    </div>
+    <div class="search-bar" style="border:none;padding:12px 20px">
+        <form method="GET" class="search-form">
+            <label style="align-self:center">交款日期：</label>
+            <input type="date" name="f_date" value="{{ f_date or '' }}" class="search-input" style="max-width:180px">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> 筛选</button>
+            <a href="{{ url_for('cash_sheets') }}" class="btn btn-secondary">重置</a>
+        </form>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>交款日期</th>
+                <th>充值操作员</th>
+                <th>笔数</th>
+                <th>现金</th>
+                <th>微信</th>
+                <th>支付宝</th>
+                <th>银行卡</th>
+                <th>合计</th>
+                <th>备注</th>
+                <th>提交人</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in sheets %}
+            <tr>
+                <td class="text-muted">{{ s.sheet_date }}</td>
+                <td><strong>{{ s.operator }}</strong></td>
+                <td class="text-center">{{ s.cnt }}</td>
+                <td class="text-right">{{ "%.2f"|format(s.cash_amount) }}</td>
+                <td class="text-right">{{ "%.2f"|format(s.wechat_amount) }}</td>
+                <td class="text-right">{{ "%.2f"|format(s.alipay_amount) }}</td>
+                <td class="text-right">{{ "%.2f"|format(s.card_amount) }}</td>
+                <td class="text-right amount-positive"><strong>{{ "%.2f"|format(s.amount) }}</strong></td>
+                <td class="text-muted">{{ s.remark or '-' }}</td>
+                <td class="text-muted">{{ s.submitted_by or '-' }}</td>
+                <td>
+                    {% if is_admin or s.submitted_by == session.get('username') %}
+                    <form method="POST" action="{{ url_for('cash_sheet_delete', sid=s.id) }}" style="display:inline" onsubmit="return confirm('确认撤销该交款单？撤销后可重新交款。');">
+                        <button type="submit" class="btn-icon btn-delete" title="撤销"><i class="fas fa-undo"></i></button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="11" class="empty-row"><i class="fas fa-inbox"></i> 暂无交款记录</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

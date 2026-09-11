@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - {{ shop_name }}会员管理系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            overflow: hidden;
+        }
+        
+        .bg-particles {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+        }
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+            animation: float linear infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+        }
+        .login-container {
+            position: relative; z-index: 1;
+            width: 420px;
+        }
+        .login-card {
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 24px;
+            padding: 48px 40px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+        .login-logo .icon-wrap {
+            width: 72px; height: 72px;
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 24px rgba(233,69,96,0.4);
+        }
+        .login-logo .icon-wrap i {
+            font-size: 32px; color: #fff;
+        }
+        .login-logo h1 {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+        .login-logo p {
+            color: rgba(255,255,255,0.5);
+            font-size: 13px;
+            margin-top: 6px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .input-wrap {
+            position: relative;
+        }
+        .input-wrap i {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: rgba(255,255,255,0.4);
+            font-size: 16px;
+            transition: color 0.3s;
+        }
+        .input-wrap input {
+            width: 100%;
+            padding: 14px 16px 14px 46px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.3s;
+            outline: none;
+        }
+        .input-wrap input::placeholder { color: rgba(255,255,255,0.3); }
+        .input-wrap input:focus {
+            border-color: #e94560;
+            background: rgba(233,69,96,0.08);
+            box-shadow: 0 0 0 3px rgba(233,69,96,0.15);
+        }
+        .input-wrap input:focus + i,
+        .input-wrap input:focus ~ i { color: #e94560; }
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #e94560, #c62a47);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 8px;
+            box-shadow: 0 8px 24px rgba(233,69,96,0.35);
+        }
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(233,69,96,0.5);
+        }
+        .btn-login:active { transform: translateY(0); }
+        .flash-messages { margin-bottom: 20px; }
+        .flash-error {
+            background: rgba(239,68,68,0.15);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #fca5a5;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .login-footer {
+            text-align: center;
+            margin-top: 24px;
+            color: rgba(255,255,255,0.3);
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="bg-particles" id="particles"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="icon-wrap">
+                    <i class="fas fa-cut"></i>
+                </div>
+                <h1>{{ shop_name }}</h1>
+                <p>会员管理系统 · 欢迎登录</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash-{{ category }}">
+                                <i class="fas fa-exclamation-circle"></i> {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('login') }}">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <div class="input-wrap">
+                        <input type="text" name="username" placeholder="请输入用户名" autocomplete="username" required autofocus>
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <div class="input-wrap">
+                        <input type="password" name="password" placeholder="请输入密码" autocomplete="current-password" required>
+                        <i class="fas fa-lock"></i>
+                    </div>
+                </div>
+                <button type="submit" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> 登 录
+                </button>
+            </form>
+        </div>
+        <div class="login-footer">
+            默认账号：admin / 123456
+        </div>
+    </div>
+
+    <script>
+
+        const container = document.getElementById('particles');
+        for (let i = 0; i < 20; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 60 + 20;
+            p.style.width = size + 'px';
+            p.style.height = size + 'px';
+            p.style.left = Math.random() * 100 + '%';
+            p.style.animationDuration = Math.random() * 15 + 10 + 's';
+            p.style.animationDelay = Math.random() * 10 + 's';
+            container.appendChild(p);
+        }
+
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keypress', e => { if (e.key === 'Enter') e.target.form.requestSubmit(); });
+        });
+    </script>
+</body>
+</html>

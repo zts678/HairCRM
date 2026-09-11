@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}套餐管理 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}套餐管理 - {{ member.name }}{% endblock %}
+
+{% block content %}
+<div class="member-header">
+    <div class="member-avatar">{{ member.name[0] }}</div>
+    <div class="member-details">
+        <h2>{{ member.name }}</h2>
+        <p>{{ member.phone }} · {{ member.membership_type }} · 余额：{{ "%.2f"|format(member.balance) }} 元</p>
+    </div>
+    <a href="{{ url_for('members') }}" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> 返回</a>
+</div>
+
+<div class="table-card">
+    <div class="table-card-header">
+        <h3><i class="fas fa-box"></i> 现有套餐</h3>
+        <span class="record-count">{{ packages|length }} 个</span>
+    </div>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>套餐名称</th>
+                <th>价格</th>
+                <th>总次数</th>
+                <th>剩余次数</th>
+                <th>有效期</th>
+                <th>状态</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in packages %}
+            <tr>
+                <td><strong>{{ p.package_name }}</strong></td>
+                <td>{{ "%.2f"|format(p.package_price) }} 元</td>
+                <td>{{ p.service_count }} 次</td>
+                <td>{{ p.remaining_count }} 次</td>
+                <td class="text-muted">{{ p.expire_date or '不限' }}</td>
+                <td><span class="status status-{{ p.status }}">{{ p.status }}</span></td>
+                <td>
+                    {% if p.status == '有效' and p.remaining_count > 0 %}
+                    <form method="POST" style="display:inline" onsubmit="return confirm('确认使用一次《{{ p.package_name }}》？')">
+                        <input type="hidden" name="action" value="use">
+                        <input type="hidden" name="pkg_id" value="{{ p.id }}">
+                        <button type="submit" class="btn-icon btn-use" title="使用一次"><i class="fas fa-play"></i></button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="empty-row"><i class="fas fa-inbox"></i> 暂无套餐</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="form-card" style="margin-top:20px">
+    <div class="form-card-header">
+        <i class="fas fa-plus-circle"></i> 添加套餐
+    </div>
+    <form method="POST" class="form-section">
+        <input type="hidden" name="action" value="add">
+        <div class="form-row">
+            <div class="form-group">
+                <label>套餐名称</label>
+                <input type="text" name="pkg_name" placeholder="如：烫发套餐" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label>价格（元）</label>
+                <input type="number" name="pkg_price" step="0.01" min="0" placeholder="0.00" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label>次数</label>
+                <input type="number" name="pkg_count" min="1" placeholder="次数" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label>有效期（天，0=不限）</label>
+                <input type="number" name="pkg_valid" min="0" placeholder="0" class="form-input">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i> 添加套餐</button>
+    </form>
+</div>
+{% endblock %}

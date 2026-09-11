@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}业绩报表 - {{ shop_name }}会员管理系统{% endblock %}
+{% block page_title %}理发师业绩报表{% endblock %}
+
+{% block content %}
+
+<div class="table-card">
+    <div class="card-body" style="padding:16px 20px">
+        <form method="GET" class="search-form" style="flex-wrap:wrap">
+            <label style="align-self:center">开始：</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="search-input" style="max-width:170px">
+            <label style="align-self:center">结束：</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="search-input" style="max-width:170px">
+            <label style="align-self:center">理发师：</label>
+            <select name="barber_id" class="filter-select">
+                <option value="">全部</option>
+                {% for b in barbers %}
+                <option value="{{ b.id }}" {% if barber_id == b.id %}selected{% endif %}>{{ b.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> 查询</button>
+            <a href="{{ url_for('performance') }}" class="btn btn-secondary"><i class="fas fa-redo"></i> 本月</a>
+        </form>
+    </div>
+</div>
+
+<div class="summary-cards">
+    <div class="summary-card">
+        <span class="summary-label">消费笔数</span>
+        <span class="summary-value">{{ totals.cnt }}</span>
+    </div>
+    <div class="summary-card summary-green">
+        <span class="summary-label">原价总额</span>
+        <span class="summary-value">{{ "%.2f"|format(totals.total_price) }}</span>
+    </div>
+    <div class="summary-card summary-orange">
+        <span class="summary-label">实收总额</span>
+        <span class="summary-value">{{ "%.2f"|format(totals.total_actual) }}</span>
+    </div>
+</div>
+
+<div class="table-card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>理发师</th>
+                <th>职称</th>
+                <th>消费笔数</th>
+                <th>原价合计</th>
+                <th>实收合计</th>
+                <th>单均实收</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in report %}
+            <tr>
+                <td><strong>{{ r.barber_name or '未指定' }}</strong></td>
+                <td>{{ r.position or '-' }}</td>
+                <td class="text-center">{{ r.cnt }}</td>
+                <td class="text-right">{{ "%.2f"|format(r.total_price) }}</td>
+                <td class="text-right amount-positive"><strong>{{ "%.2f"|format(r.total_actual) }}</strong></td>
+                <td class="text-right">{{ "%.2f"|format(r.total_actual / r.cnt) if r.cnt else '0.00' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6" class="empty-row"><i class="fas fa-inbox"></i> 该时间段内暂无消费业绩</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

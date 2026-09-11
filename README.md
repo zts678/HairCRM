@@ -54,8 +54,7 @@ http://127.0.0.1:5000
 
 ## 项目结构
 
-```
-理发店会员管理系统/
+HairCRM)
 ├── app.py              # Flask Web 入口与路由
 ├── models.py           # 数据层（建表、业务逻辑）
 ├── barber_shop.db      # SQLite 数据库（首次启动自动创建）
